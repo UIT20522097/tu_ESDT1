@@ -45,7 +45,7 @@
 TIM_HandleTypeDef htim3;
 
 /* USER CODE BEGIN PV */
-static volatile int number_effect = 1;
+static volatile int number_effect = 0;
 static volatile int counter_enable = 0;
 static volatile int hold_counter = 0;
 static volatile int present_position_counter = 0;
@@ -64,6 +64,7 @@ void SetBlueOn(void);
 void SetAllOn(void);
 void SetLedEffect(void);
 void Calculate_present_counter(void);
+void Calculate_present_counter_1(void);
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
 /* USER CODE END PFP */
 
@@ -108,9 +109,17 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
+	    /* USER CODE END WHILE */
+		  while (HAL_GPIO_ReadPin(BTN1_GPIO_Port, BTN1_Pin) == GPIO_PIN_RESET) {
+			  counter_enable = 1;
+		  }
+		  while (HAL_GPIO_ReadPin(BTN2_GPIO_Port, BTN2_Pin) == GPIO_PIN_RESET) {
+		  		  counter_enable = 2;
+		  	  }
+		  if (counter_enable == 1) Calculate_present_counter();
+		  if (counter_enable == 2) Calculate_present_counter_1();
+		  counter_enable = 0;
+	    /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
 }
@@ -213,6 +222,7 @@ static void MX_GPIO_Init(void)
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, LEDR_MCU2_Pin|LEDG_MCU2_Pin|LEDB_MCU2_Pin, GPIO_PIN_RESET);
@@ -220,7 +230,7 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pins : BTN1_Pin BTN2_Pin */
   GPIO_InitStruct.Pin = BTN1_Pin|BTN2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LEDR_MCU2_Pin LEDG_MCU2_Pin LEDB_MCU2_Pin */
@@ -245,16 +255,19 @@ void SetAllOff(void)
 void SetRedOn(void)
 {
 	HAL_GPIO_WritePin(GPIOB,LEDR_MCU2_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(GPIOB,LEDG_MCU2_Pin, GPIO_PIN_RESET);
 }
 
 void SetGreenOn(void)
 {
 	HAL_GPIO_WritePin(GPIOB,LEDG_MCU2_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(GPIOB,LEDB_MCU2_Pin, GPIO_PIN_RESET);
 }
 
 void SetBlueOn(void)
 {
 	HAL_GPIO_WritePin(GPIOB,LEDB_MCU2_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(GPIOB,LEDR_MCU2_Pin, GPIO_PIN_RESET);
 }
 
 void SetAllOn(void)
@@ -279,22 +292,46 @@ void SetLedEffect(void)
 		 default:
 			 SetAllOff();
 		 }
+	if(number_effect++ >= TOTAL_EFFECTS - 1) {
+				 number_effect = 0;
+			 }
 }
 
 void Calculate_present_counter(void)
 {
-	if (hold_counter < 5) {
-		present_counter -= 1;
-	}
-	else {
-		present_counter -= (hold_counter - 5) / 2;
-	}
+	if (hold_counter > 1) {
+		if (hold_counter < 5) {
+			present_counter -= 1;
+		}
+		else {
+			present_counter -= (hold_counter - 5) / 2;
+		}
 
-	if (present_counter <= 0) {
-		present_counter = MAX_COUNTER;
+		if (present_counter <= 0) {
+			present_counter = MAX_COUNTER;
+		}
+		present_position_counter = 0;
+		hold_counter = 0;
 	}
 }
 
+void Calculate_present_counter_1(void)
+{
+	if (hold_counter > 1) {
+		if (hold_counter < 5) {
+			number_effect++;
+		}
+		else {
+			present_counter += (hold_counter - 5) / 2;
+		}
+
+		if (present_counter > MAX_COUNTER) {
+			present_counter = MIN_COUNTER;
+		}
+		present_position_counter = 0;
+		hold_counter = 0;
+	}
+}
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
@@ -302,19 +339,17 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
  if (htim == &htim3 )
  {
 	 // Change led effect
-	 if (present_position_counter % present_counter == 0) {
+	 if (present_position_counter == present_counter && counter_enable == 0) {
 		 SetLedEffect();
-//		 if(number_effect++ >= TOTAL_EFFECTS) {
-//			 number_effect = 0;
-//		 }
 	 }
 	 // Hold button handle
 	 if (counter_enable) {
 		 hold_counter++;
 	 }
-
-	 if (present_position_counter++ >= present_counter) {
-		 present_position_counter = 0;
+	 else {
+		 if (present_position_counter++ >= present_counter) {
+			 present_position_counter = 0;
+		 }
 	 }
  }
 }
