@@ -31,8 +31,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define MIN_COUNTER 100	// 100ms = 100x1ms (1ms for timer3 interrupt)
-#define MAX_COUNTER	2000 // 2s = 2000x1ms (1ms for timer3 interrupt)
+#define MIN_COUNTER 1	// 100ms = 100x1ms (1ms for timer3 interrupt)
+#define MAX_COUNTER	20 // 2s = 2000x1ms (1ms for timer3 interrupt)
 #define TOTAL_EFFECTS 6
 /* USER CODE END PD */
 
@@ -45,11 +45,11 @@
 TIM_HandleTypeDef htim3;
 
 /* USER CODE BEGIN PV */
-static volatile int number_effect = 0;
+static volatile int number_effect = 1;
 static volatile int counter_enable = 0;
 static volatile int hold_counter = 0;
 static volatile int present_position_counter = 0;
-static volatile int present_counter = MAX_COUNTER;
+static volatile int present_counter = 10;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -109,13 +109,6 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-	  while (HAL_GPIO_ReadPin(BTN1_GPIO_Port, BTN1_Pin) == GPIO_PIN_RESET)
-	  {
-		  counter_enable = 1;
-	  }
-	  counter_enable = 0;
-
-	  // Calculate present_counter variable
 
     /* USER CODE BEGIN 3 */
   }
@@ -180,9 +173,9 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 71;
+  htim3.Init.Prescaler = 31999;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 999;
+  htim3.Init.Period = 199;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
@@ -227,14 +220,14 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pins : BTN1_Pin BTN2_Pin */
   GPIO_InitStruct.Pin = BTN1_Pin|BTN2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pins : LEDR_MCU2_Pin LEDG_MCU2_Pin LEDB_MCU2_Pin */
   GPIO_InitStruct.Pin = LEDR_MCU2_Pin|LEDG_MCU2_Pin|LEDB_MCU2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
@@ -244,24 +237,24 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 void SetAllOff(void)
 {
-		HAL_GPIO_WritePin(GPIOB,LEDR_MCU2_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOB,LEDG_MCU2_Pin, GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(GPIOB,LEDB_MCU2_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(GPIOB,LEDR_MCU2_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOB,LEDG_MCU2_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(GPIOB,LEDB_MCU2_Pin, GPIO_PIN_SET);
 }
 
 void SetRedOn(void)
 {
-	HAL_GPIO_WritePin(GPIOB,LEDR_MCU2_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPIOB,LEDR_MCU2_Pin, GPIO_PIN_RESET);
 }
 
 void SetGreenOn(void)
 {
-	HAL_GPIO_WritePin(GPIOB,LEDG_MCU2_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPIOB,LEDG_MCU2_Pin, GPIO_PIN_RESET);
 }
 
 void SetBlueOn(void)
 {
-	HAL_GPIO_WritePin(GPIOB,LEDB_MCU2_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPIOB,LEDB_MCU2_Pin, GPIO_PIN_RESET);
 }
 
 void SetAllOn(void)
@@ -290,11 +283,11 @@ void SetLedEffect(void)
 
 void Calculate_present_counter(void)
 {
-	if (hold_counter < 500) {
-		present_counter -= 100;
+	if (hold_counter < 5) {
+		present_counter -= 1;
 	}
 	else {
-		present_counter -= ((hold_counter - 500) / 200) * 100;
+		present_counter -= (hold_counter - 5) / 2;
 	}
 
 	if (present_counter <= 0) {
@@ -309,8 +302,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
  if (htim == &htim3 )
  {
 	 // Change led effect
-	 if (present_position_counter % (present_counter / 2) == 0 && present_position_counter != 0) {
+	 if (present_position_counter % present_counter == 0) {
 		 SetLedEffect();
+//		 if(number_effect++ >= TOTAL_EFFECTS) {
+//			 number_effect = 0;
+//		 }
 	 }
 	 // Hold button handle
 	 if (counter_enable) {
@@ -319,9 +315,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 	 if (present_position_counter++ >= present_counter) {
 		 present_position_counter = 0;
-	 }
-	 if(number_effect++ >= TOTAL_EFFECTS) {
-		 number_effect = 0;
 	 }
  }
 }
