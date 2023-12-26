@@ -6,5 +6,5 @@
 ../Core/Src/main.c:340:13:MX_USART1_UART_Init	2
 ../Core/Src/main.c:373:13:MX_GPIO_Init	1
 ../Core/Src/main.c:409:6:HAL_CAN_RxFifo1MsgPendingCallback	3
-../Core/Src/main.c:423:6:run_service	2
-../Core/Src/main.c:446:6:Error_Handler	1
+../Core/Src/main.c:423:6:run_service	3
+../Core/Src/main.c:448:6:Error_Handler	1

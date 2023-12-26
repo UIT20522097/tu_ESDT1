@@ -234,7 +234,7 @@ static void MX_TIM1_Init(void)
 
   /* USER CODE END TIM1_Init 1 */
   htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 999;
+  htim1.Init.Prescaler = 5999;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim1.Init.Period = 1;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -422,13 +422,15 @@ void HAL_CAN_RxFifo1MsgPendingCallback(CAN_HandleTypeDef *hcan)
 
 void run_service() {
 	  if (check == 5) {
-		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 4);
-		  HAL_Delay(40);
-		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
-		  HAL_Delay(3000);
+		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 1.0555);
+		  HAL_Delay(2000);
+		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 5);
 		  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, 0);
+		  HAL_Delay(10);
+		  __HAL_TIM_SET_COMPARE(&htim4, TIM_CHANNEL_1, 0);
+		  check = 6;
 	  }
-	  else {
+	  else if (check < 5) {
 		  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, 100);
 		  HAL_GPIO_WritePin(GPIOB, R_En_Pin, GPIO_PIN_SET);
 		  HAL_GPIO_WritePin(GPIOB, L_En_Pin, GPIO_PIN_SET);
